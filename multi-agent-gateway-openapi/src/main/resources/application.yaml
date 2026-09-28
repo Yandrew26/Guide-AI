@@ -1,0 +1,76 @@
+server:
+  port: 8100
+  # Loopback only: these services have no user auth. Set SERVER_ADDRESS=0.0.0.0 to expose deliberately.
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  tomcat:
+    connection-timeout: 30s
+    accept-count: 1000
+    max-connections: 10000
+    max-http-form-post-size: 50MB
+    threads:
+      max: 500
+      min-spare: 50
+    uri-encoding: UTF-8
+
+spring:
+  # Local secrets live in the repo-root .env (gitignored). Paths cover running from the root or a module dir.
+  config:
+    import: optional:file:.env[.properties],optional:file:../.env[.properties],optional:file:../../.env[.properties]
+  application:
+    name: multi-agent-gateway
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  main:
+    allow-bean-definition-overriding: true
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    default-property-inclusion: always
+    serialization:
+      indent-output: true
+      write-dates-as-timestamps: false
+    time-zone: Asia/Shanghai
+  output:
+    ansi:
+      enabled: never
+  mvc:
+    format:
+      date-time: yyyy-MM-dd HH:mm:ss
+  cloud:
+    loadbalancer:
+      enabled: true
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: multi-agent-service-search
+              uri: http://localhost:8081
+              order: 9999
+              predicates:
+                - Path=/chat/**
+              filters:
+                - StripPrefix=1
+                - AuthFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH:5}
+                    redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST:5}
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@userKeyResolver}"
+            - id: multi-agent-service-upload
+              uri: http://localhost:8082
+              order: 9998
+              predicates:
+                - Path=/upload/**
+              filters:
+                - StripPrefix=1
+                - AuthFilter
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH:5}
+                    redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST:5}
+                    redis-rate-limiter.requestedTokens: 1
+                    key-resolver: "#{@userKeyResolver}"
+management:
+  health:
+    redis:
+      enabled: true

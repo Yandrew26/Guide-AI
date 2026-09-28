@@ -1,0 +1,112 @@
+server:
+  port: 8081
+  # Loopback only: these services have no user auth. Set SERVER_ADDRESS=0.0.0.0 to expose deliberately.
+  address: ${SERVER_ADDRESS:127.0.0.1}
+
+spring:
+  # Local secrets live in the repo-root .env (gitignored). Paths cover running from the root or a module dir.
+  config:
+    import: optional:file:.env[.properties],optional:file:../.env[.properties],optional:file:../../.env[.properties]
+  application:
+    name: multi-agent-service-search
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/multi_agent_db
+    username: ${MySQL_USERNAME:root}
+    password: ${MySQL_PASSWORD}
+  elasticsearch:
+    uris: ${ELASTIC_URI:http://localhost:9200}
+    username: elastic
+    password: ${ELASTIC_PASSWORD}
+  ai:
+    openai:
+      api-key: ${API_KEY}
+      # 阿里通义接入: https://help.aliyun.com/zh/model-studio/use-qwen-by-calling-api?spm=a2c4g.11186623.0.i1
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          # DashScope retires model aliases (qwen-max-latest is gone); override with CHAT_MODEL
+          model: ${CHAT_MODEL:qwen3-max}
+      embedding:
+        options:
+          model: text-embedding-v4
+          dimensions: 1536
+    memory:
+      self-mysql:
+        jdbc-url: jdbc:mysql://localhost:3306/multi_agent_db
+        username: ${MySQL_USERNAME:root}
+        password: ${MySQL_PASSWORD}
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        enabled: true
+    vectorstore:
+      elasticsearch:
+        initialize-schema: true
+        index-name: books-kb-index
+        dimensions: 1536
+        similarity: cosine
+        embedding-field-name: embedding
+        top-k: 5
+    mcp:
+      client:
+        name: multi-agent-mcp-client
+        version: 0.0.1
+        type: async
+        # first `uvx workspace-mcp` launch installs packages; the 20s default fails cold starts
+        request-timeout: 60s
+        # McpToolsConfig initializes the servers itself so one dead server can't stop startup
+        initialized: false
+        toolcallback:
+          enabled: false
+        stdio:
+          connections:
+            # Google Workspace tools; needs `uvx` on PATH and a Google OAuth client.
+            google_workspace:
+              command: uvx
+              args:
+                - workspace-mcp
+              env:
+                GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:}
+                GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:}
+                USER_GOOGLE_EMAIL: ${GOOGLE_USER_EMAIL:}
+                # plain-http OAuth callback on localhost
+                OAUTHLIB_INSECURE_TRANSPORT: "1"
+                OAUTH2_ALLOW_INSECURE_TRANSPORT: "true"
+                OAUTH2_ENABLE_LEGACY_AUTH: "true"
+        sse:
+          connections:
+            timezone:
+              url: https://dashscope.aliyuncs.com
+              sse-endpoint: /api/v1/mcps/TimeZone/sse
+              headers:
+                Authorization: Bearer ${API_KEY}
+            amap:
+              url: https://dashscope.aliyuncs.com
+              sse-endpoint: /api/v1/mcps/amap-maps/sse
+              headers:
+                Authorization: Bearer ${API_KEY}
+            weather:
+              url: https://dashscope.aliyuncs.com
+              sse-endpoint: /api/v1/mcps/weather/sse
+              headers:
+                Authorization: Bearer ${API_KEY}
+            12306:
+              url: https://dashscope.aliyuncs.com
+              sse-endpoint: /api/v1/mcps/china-railway/sse
+              headers:
+                Authorization: Bearer ${API_KEY}
+  mybatis-plus:
+    mapper-locations: classpath*:mapper/**/*.xml
+    configuration:
+      map-underscore-to-camel-case: true
+      log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+      cache-enabled: false
+      default-enum-type-handler: com.baomidou.mybatisplus.extension.handlers.EnumTypeHandler
+    global-config:
+      db-config:
+        logic-delete-value: true
+        logic-not-delete-value: false
+  neo4j:
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: ${NEO4J_PASSWORD}

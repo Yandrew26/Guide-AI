@@ -1,0 +1,59 @@
+server:
+  port: 8082
+  # Loopback only: these services have no user auth. Set SERVER_ADDRESS=0.0.0.0 to expose deliberately.
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+
+spring:
+  # Local secrets live in the repo-root .env (gitignored). Paths cover running from the root or a module dir.
+  config:
+    import: optional:file:.env[.properties],optional:file:../.env[.properties],optional:file:../../.env[.properties]
+  application:
+    name: multi-agent-service-upload
+  messages:
+    basename: i18n/messages
+    encoding: UTF-8
+  profiles:
+    active: dev
+  elasticsearch:
+    uris: ${ELASTIC_URI:http://localhost:9200}
+    username: elastic
+    password: ${ELASTIC_PASSWORD}
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+  ai:
+    dashscope:
+      api-key: ${API_KEY}
+      base-url: https://dashscope.aliyuncs.com/
+      chat:
+        options:
+          # DashScope retires model aliases (qwen-max-latest is gone); override with CHAT_MODEL
+          model: ${CHAT_MODEL:qwen3-max}
+      embedding:
+        options:
+          model: text-embedding-v4
+          dimensions: 1536
+    vectorstore:
+      elasticsearch:
+        initialize-schema: true
+        index-name: books-kb-index
+        dimensions: 1536
+        similarity: cosine
+        embedding-field-name: embedding
+        top-k: 5
+  neo4j:
+    uri: bolt://localhost:7687
+    username: neo4j
+    password: ${NEO4J_PASSWORD}
+    authentication:
+      username: neo4j
+      password: ${NEO4J_PASSWORD}
+document:
+  filter:
+    max-pages: 50  # Set to null or 0 to disable page limit
+    min-word-count: 50

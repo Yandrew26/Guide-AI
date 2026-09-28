@@ -1,0 +1,42 @@
+# Infrastructure for local runs. Passwords come from .env (same file the services read).
+#   docker compose up -d                    # Elasticsearch + Neo4j
+#   docker compose --profile db up -d       # also MySQL + Redis, if you don't run them natively
+# Ports bind to 127.0.0.1 only.
+services:
+  elasticsearch:
+    image: elasticsearch:8.18.8
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:?set ELASTIC_PASSWORD in .env}
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+    ports: ["127.0.0.1:9200:9200"]
+    volumes: [es-data:/usr/share/elasticsearch/data]
+
+  neo4j:
+    image: neo4j:5.26.31
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env}
+    ports: ["127.0.0.1:7474:7474", "127.0.0.1:7687:7687"]
+    volumes: [neo4j-data:/data]
+
+  mysql:
+    profiles: [db]
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MySQL_PASSWORD:?set MySQL_PASSWORD in .env}
+    ports: ["127.0.0.1:3306:3306"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
+  redis:
+    profiles: [db]
+    image: redis:7-alpine
+    ports: ["127.0.0.1:6379:6379"]
+
+volumes:
+  es-data:
+  neo4j-data:
+  mysql-data:

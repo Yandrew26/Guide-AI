@@ -1,0 +1,27 @@
+server:
+  port: 8084
+  # Loopback only: these services have no user auth. Set SERVER_ADDRESS=0.0.0.0 to expose deliberately.
+  address: ${SERVER_ADDRESS:127.0.0.1}
+
+spring:
+  # Local secrets live in the repo-root .env (gitignored). Paths cover running from the root or a module dir.
+  config:
+    import: optional:file:.env[.properties],optional:file:../.env[.properties],optional:file:../../.env[.properties]
+  application:
+    name: multi-agent-service-auth
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/multi_agent_db
+    username: ${MySQL_USERNAME:root}
+    password: ${MySQL_PASSWORD}
+  mybatis-plus:
+    mapper-locations: classpath*:mapper/**/*.xml
+    configuration:
+      map-underscore-to-camel-case: true
+      log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+      cache-enabled: false
+      default-enum-type-handler: com.baomidou.mybatisplus.extension.handlers.EnumTypeHandler
+    global-config:
+      db-config:
+        logic-delete-value: true
+        logic-not-delete-value: false

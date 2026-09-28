@@ -1,0 +1,51 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### IntelliJ IDEA ###
+# whole folder: workspace.xml holds run-config env vars (API keys, passwords)
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+### Frontend ###
+node_modules/
+multi-agent-frontend/dist/
+
+### Secrets ###
+.env
+.env.*
+!.env.example
+
+### Local / generated ###
+graphify-out/
+tmp/
+.claude/
+.impeccable/
+logs/
